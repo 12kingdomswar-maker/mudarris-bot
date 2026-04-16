@@ -339,6 +339,31 @@ textarea{resize:vertical;min-height:80px}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:10px}
+
+/* ═══════════════════════ JOB REQUESTS (SUPABASE) ═══════════════════════ */
+.jr-pipeline{display:flex;gap:14px;overflow-x:auto;padding-bottom:14px;min-height:calc(100vh - 260px)}
+.jr-col{flex-shrink:0;width:230px;background:#f8fafc;border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;border:1px solid var(--border)}
+.jr-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.jr-col-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.jr-cnt{background:#fff;color:var(--muted);font-size:11px;font-weight:600;padding:1px 8px;border-radius:10px;border:1px solid var(--border)}
+.jr-card{background:#fff;border-radius:10px;padding:12px;border:1px solid var(--border);cursor:pointer;transition:.15s}
+.jr-card:hover{border-color:var(--indigo);box-shadow:0 4px 14px rgba(99,102,241,.14);transform:translateY(-1px)}
+.jr-card.dragging{opacity:.35;transform:scale(.97)}
+.jr-card-title{font-size:13px;font-weight:600;margin-bottom:3px;line-height:1.3}
+.jr-card-sub{font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-direction:column;gap:2px}
+.jr-card-foot{display:flex;align-items:center;justify-content:space-between}
+.jr-card-time{font-size:10px;color:#94a3b8}
+.jr-drop{min-height:50px;border:2px dashed #e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#cbd5e1;transition:.15s;margin-top:4px}
+.jr-drop.over{border-color:var(--indigo);background:var(--indigo-l);color:var(--indigo)}
+.jr-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#f1f5f9;border-radius:5px;font-size:10px;color:#475569;font-weight:500;margin-right:3px;margin-top:2px}
+.jr-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.s-waiting{background:#fef3c7;color:#b45309}
+.s-processing{background:#dbeafe;color:#1d4ed8}
+.s-approved{background:#dcfce7;color:#15803d}
+.s-rejected-jr{background:#fee2e2;color:#b91c1c}
+.s-onhold{background:#f3e8ff;color:#7e22ce}
+.jr-form-section{background:#f8fafc;border-radius:10px;padding:14px 16px;margin-bottom:14px;border:1px solid #e2e8f0}
+.jr-form-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:7px}
 </style>
 </head>
 <body>
@@ -395,6 +420,13 @@ textarea{resize:vertical;min-height:80px}
 
   <div class="nav-section">Sozlamalar</div>
   <div class="nav-item" onclick="showPage('buttons',this)"><i class="fa-solid fa-sliders" style="color:#6366f1"></i> Bot tugmalari</div>
+  <div class="nav-item" onclick="showPage('jobrequests',this)"><i class="fa-solid fa-clipboard-list" style="color:#f59e0b"></i> Ish So'rovlari<span class="nav-badge" id="nb-jr" style="display:none">0</span></div>
+
+  <div class="nav-section">Tashqi</div>
+  <div class="nav-item" onclick="window.open('supabase-requests.html','_blank')" style="cursor:pointer">
+    <i class="fa-solid fa-arrow-up-right-from-square" style="color:#0ea5e9"></i> Tashqi Ariza
+    <i class="fa-solid fa-external-link-alt" style="margin-left:auto;font-size:10px;color:#9ca3af"></i>
+  </div>
 
   <div class="sidebar-bottom">
     <div class="user-row">
@@ -529,6 +561,37 @@ textarea{resize:vertical;min-height:80px}
       <div id="btn-tree"></div>
     </div>
 
+    <!-- ISH SO'ROVLARI (SUPABASE) -->
+    <div class="page" id="page-jobrequests">
+      <!-- Stats -->
+      <div class="jr-stats" id="jr-stats-wrap">
+        <div class="stat-card"><div class="stat-label">Jami</div><div class="stat-val blue" id="jr-s-total">—</div></div>
+        <div class="stat-card"><div class="stat-label">Kutish</div><div class="stat-val orange" id="jr-s-wait">—</div></div>
+        <div class="stat-card"><div class="stat-label">Jarayonda</div><div class="stat-val purple" id="jr-s-proc">—</div></div>
+        <div class="stat-card"><div class="stat-label">Tasdiqlandi</div><div class="stat-val green" id="jr-s-appr">—</div></div>
+        <div class="stat-card"><div class="stat-label">Rad etildi</div><div class="stat-val red" id="jr-s-rej">—</div></div>
+      </div>
+      <!-- Filters + Add -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div class="filters">
+          <select id="jr-f-dep" onchange="renderJRPipeline()" class="fsel"><option value="">Barcha bo'lim</option></select>
+          <select id="jr-f-branch" onchange="renderJRPipeline()" class="fsel"><option value="">Barcha filial</option></select>
+          <select id="jr-f-st" onchange="renderJRPipeline()" class="fsel">
+            <option value="">Barcha status</option>
+            <option value="Kutish jarayonida">⏳ Kutish</option>
+            <option value="Ko'rib chiqilmoqda">🔍 Jarayonda</option>
+            <option value="Tasdiqlandi">✅ Tasdiqlandi</option>
+            <option value="Rad etildi">❌ Rad etildi</option>
+            <option value="Muzlatildi">⏸ Muzlatildi</option>
+          </select>
+          <button class="btn-excel btn-sm" onclick="exportJRExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+        </div>
+        <button class="btn btn-primary" onclick="openJRModal()"><i class="fa-solid fa-plus"></i> Yangi so'rov</button>
+      </div>
+      <!-- Pipeline Kanban -->
+      <div class="jr-pipeline" id="jr-pipeline"></div>
+    </div>
+
   </div>
 </div>
 </div><!-- #app -->
@@ -653,6 +716,104 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div></div>
 
+<!-- ══════════════ JOB REQUEST MODALS ══════════════ -->
+
+<!-- JR Detail / Edit Modal -->
+<div class="overlay" id="jrm"><div class="modal modal-lg" style="max-width:860px">
+  <div class="mhead"><h3 id="jrm-t">Ish So'rovi Tafsiloti</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-ghost btn-sm" id="jrm-edit-btn" onclick="toggleJREdit()"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
+      <button class="mclose" onclick="closeM('jrm')">×</button>
+    </div>
+  </div>
+  <div id="jrm-body"></div>
+</div></div>
+
+<!-- JR New Modal -->
+<div class="overlay" id="jrnew"><div class="modal modal-lg" style="max-width:760px">
+  <div class="mhead"><h3 id="jrnew-t">Yangi Ish So'rovi</h3><button class="mclose" onclick="closeM('jrnew')">×</button></div>
+
+  <div class="jr-form-section">
+    <div class="jr-form-section-title"><i class="fa-solid fa-building"></i> Tashkilot Ma'lumotlari</div>
+    <div class="fg-row">
+      <div class="fg"><label class="fl">Bo'lim *</label>
+        <select id="jrn-dep" style="width:100%" onchange="onJRDepChange()">
+          <option value="">— Tanlang —</option>
+          <option value="Maktab">🏫 Maktab</option>
+          <option value="Bog'cha">👶 Bog'cha</option>
+          <option value="O'quv markaz">📚 O'quv markaz</option>
+          <option value="Admin">🏢 Admin / Boshqaruv</option>
+          <option value="Oshxona">🍽 Oshxona</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Filial *</label>
+        <select id="jrn-branch" style="width:100%">
+          <option value="">— Avval bo'lim tanlang —</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="jr-form-section">
+    <div class="jr-form-section-title"><i class="fa-solid fa-briefcase"></i> Lavozim Ma'lumotlari</div>
+    <div class="fg-row">
+      <div class="fg"><label class="fl">Lavozim nomi *</label><input type="text" id="jrn-pos" placeholder="Masalan: Matematika o'qituvchisi" style="width:100%"></div>
+      <div class="fg"><label class="fl">Xodim soni *</label><input type="number" id="jrn-cnt" value="1" min="1" style="width:100%"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label class="fl">Jins talabi *</label>
+        <select id="jrn-gender" style="width:100%">
+          <option value="Farq qilmaydi">Farq qilmaydi</option>
+          <option value="Erkak">Erkak</option>
+          <option value="Ayol">Ayol</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Bandlik turi *</label>
+        <select id="jrn-emp" style="width:100%">
+          <option value="To'liq stavka">To'liq stavka</option>
+          <option value="Yarim stavka">Yarim stavka</option>
+          <option value="Soatbay">Soatbay</option>
+          <option value="Shartnoma asosida">Shartnoma asosida</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label class="fl">Ish vaqti *</label><input type="text" id="jrn-hours" placeholder="08:00–17:00" style="width:100%"></div>
+      <div class="fg"><label class="fl">Haftalik yuklanma</label><input type="text" id="jrn-weekly" placeholder="40 soat" style="width:100%"></div>
+    </div>
+    <div class="fg"><label class="fl">Maqsadli sinflar (maktab uchun)</label><input type="text" id="jrn-classes" placeholder="5–9-sinflar" style="width:100%"></div>
+  </div>
+
+  <div class="jr-form-section">
+    <div class="jr-form-section-title"><i class="fa-solid fa-circle-question"></i> Kerak Sabablar va Talablar</div>
+    <div class="fg"><label class="fl">Kerak bo'lish sababi *</label>
+      <select id="jrn-reason" onchange="onJRReasonChange()" style="width:100%">
+        <option value="">— Tanlang —</option>
+        <option value="Yangi o'rin">Yangi o'rin</option>
+        <option value="Almashtirish">Almashtirish (ishdan ketgan)</option>
+        <option value="Kengayish">Kengayish</option>
+        <option value="Mavsumiy">Mavsumiy</option>
+        <option value="Boshqa">Boshqa</option>
+      </select>
+    </div>
+    <div class="fg" id="jrn-reason-other-wrap" style="display:none"><label class="fl">Sababni izohlang</label><input type="text" id="jrn-reason-other" style="width:100%"></div>
+    <div class="fg"><label class="fl">Majburiy talablar *</label><textarea id="jrn-reqs" style="width:100%;min-height:80px" placeholder="Ta'lim, tajriba, sertifikatlar..."></textarea></div>
+  </div>
+
+  <div class="jr-form-section">
+    <div class="jr-form-section-title"><i class="fa-solid fa-money-bill"></i> Maosh va Qo'shimcha</div>
+    <div class="fg-row">
+      <div class="fg"><label class="fl">Taklif etilayotgan maosh *</label><input type="text" id="jrn-salary" placeholder="3 000 000 – 5 000 000 so'm" style="width:100%"></div>
+    </div>
+    <div class="fg"><label class="fl">Qo'shimcha izohlar</label><textarea id="jrn-notes" style="width:100%;min-height:60px" placeholder="Qo'shimcha ma'lumotlar..."></textarea></div>
+  </div>
+
+  <div class="mf">
+    <button class="btn btn-primary" onclick="saveJRNew()"><i class="fa-solid fa-floppy-disk"></i> Saqlash</button>
+    <button class="btn btn-ghost" onclick="closeM('jrnew')">Bekor</button>
+  </div>
+</div></div>
+
 <div id="toast-wrap"></div>
 
 <script>
@@ -704,7 +865,7 @@ async function doLogin(){
   try{
     const r=await fetch(`${API}/login`,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({username:u,password:p})});
     const d=await r.json();
-    if(d.success){ currentUser=d.user; showApp(); await loadAll(); }
+    if(d.success){ currentUser=d.user; showApp(); await loadAll(); loadJR(); }
     else{ document.getElementById("lerr").style.display="block"; document.getElementById("l-p").value=""; }
   }catch(e){ document.getElementById("lerr").style.display="block"; }
 }
@@ -713,7 +874,7 @@ async function checkAuth(){
   try{
     const r=await fetch(`${API}/me`,{credentials:"include"});
     const d=await r.json();
-    if(d.user){ currentUser=d.user; showApp(); await loadAll(); }
+    if(d.user){ currentUser=d.user; showApp(); await loadAll(); loadJR(); }
   }catch(e){}
 }
 function showApp(){
@@ -802,7 +963,7 @@ function showPage(id,el){
   document.getElementById("page-"+id).classList.add("active");
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   el?.classList.add("active");
-  const tt={dashboard:"Dashboard",pipeline:"Pipeline — Kanban",applications:"Arizalar",vacancies:"Vakansiyalar",contacts:"Murojaatlar",templates:"Javob shablonlari",buttons:"Bot tugmalari"};
+  const tt={dashboard:"Dashboard",pipeline:"Pipeline — Kanban",applications:"Arizalar",vacancies:"Vakansiyalar",contacts:"Murojaatlar",templates:"Javob shablonlari",buttons:"Bot tugmalari",jobrequests:"Ish So'rovlari — Pipeline"};
   document.getElementById("ptitle").textContent=tt[id]||id;
 }
 
@@ -1339,8 +1500,482 @@ document.addEventListener('click',function(e){
   const drop=document.getElementById('notif-drop');
   if(drop&&btn&&!btn.contains(e.target)&&!drop.contains(e.target))drop.style.display='none';
 });
+// ══════════════════════════════════════════════════════════
+// SUPABASE — JOB REQUESTS
+// ══════════════════════════════════════════════════════════
+const SB_URL = "https://vfunkjtksjowziawzfkl.supabase.co";
+const SB_KEY = "sb_publishable_Z4sgABsYp10t0Vr-Ygpyjw_tCYIw2WT";
+
+const JR_STAGES = [
+  { id: "Kutish jarayonida", label: "⏳ Kutish jarayonida", color: "#f59e0b" },
+  { id: "Ko'rib chiqilmoqda", label: "🔍 Ko'rib chiqilmoqda", color: "#3b82f6" },
+  { id: "Tasdiqlandi",        label: "✅ Tasdiqlandi",        color: "#16a34a" },
+  { id: "Rad etildi",         label: "❌ Rad etildi",         color: "#dc2626" },
+  { id: "Muzlatildi",         label: "⏸ Muzlatildi",         color: "#8b5cf6" },
+];
+
+const JR_DEP_BRANCHES = {
+  "Maktab":["Sergeli Maktab","Qo'yliq Maktab","Qa'ni Maktab","Vatan Maktabi","Beruniy Maktab","Yunusobod Maktab","Chilonzor Maktab","Mirzo Ulug'bek Maktab"],
+  "Bog'cha":["Beruniy Mudarris Kids","Yangihayot Mudarris Kids","Sergeli Mudarris Kids","Qo'yliq Mudarris Kids"],
+  "O'quv markaz":["Beruniy O'quv Markazi","Yangihayot O'quv Markazi","Sergeli O'quv Markazi","Chilonzor O'quv Markazi"],
+  "Admin":["Bosh ofis","HR bo'limi","Moliya bo'limi","IT bo'limi"],
+  "Oshxona":["Sergeli Oshxona","Beruniy Oshxona","Qo'yliq Oshxona"]
+};
+
+let allJR = [];
+let jrDragId = null;
+let jrCurrentId = null;
+let jrEditMode = false;
+
+// ── Supabase fetch helper ──
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: {
+      "apikey": SB_KEY,
+      "Authorization": `Bearer ${SB_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": opts.prefer || "return=representation",
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ── Load all job requests ──
+async function loadJR() {
+  try {
+    const data = await sbFetch("job_requests?order=created_at.desc");
+    allJR = data || [];
+    renderJRStats();
+    renderJRPipeline();
+    populateJRFilters();
+    // Badge
+    const pending = allJR.filter(r => r.status === "Kutish jarayonida").length;
+    const nb = document.getElementById("nb-jr");
+    if (nb) { nb.textContent = pending; nb.style.display = pending ? "flex" : "none"; }
+    // Notification on new items
+    if (window._prevJRPending !== undefined && pending > window._prevJRPending)
+      addNotif("warn", `${pending - window._prevJRPending} ta yangi ish so'rovi!`, `Jami ${pending} ta kutilmoqda`);
+    window._prevJRPending = pending;
+  } catch(e) {
+    console.error("JR load error:", e);
+  }
+}
+
+// ── Stats ──
+function renderJRStats() {
+  const total = allJR.length;
+  const wait  = allJR.filter(r => r.status === "Kutish jarayonida").length;
+  const proc  = allJR.filter(r => r.status === "Ko'rib chiqilmoqda").length;
+  const appr  = allJR.filter(r => r.status === "Tasdiqlandi").length;
+  const rej   = allJR.filter(r => r.status === "Rad etildi").length;
+  document.getElementById("jr-s-total").textContent = total;
+  document.getElementById("jr-s-wait").textContent  = wait;
+  document.getElementById("jr-s-proc").textContent  = proc;
+  document.getElementById("jr-s-appr").textContent  = appr;
+  document.getElementById("jr-s-rej").textContent   = rej;
+}
+
+// ── Populate filters ──
+function populateJRFilters() {
+  const deps = [...new Set(allJR.map(r => r.department).filter(Boolean))];
+  const branches = [...new Set(allJR.map(r => r.branch).filter(Boolean))];
+  const depSel = document.getElementById("jr-f-dep");
+  const branchSel = document.getElementById("jr-f-branch");
+  if (!depSel || !branchSel) return;
+  const depCur = depSel.value;
+  const brCur  = branchSel.value;
+  depSel.innerHTML = `<option value="">Barcha bo'lim</option>` + deps.map(d => `<option value="${h(d)}" ${d===depCur?'selected':''}>${h(d)}</option>`).join('');
+  branchSel.innerHTML = `<option value="">Barcha filial</option>` + branches.map(b => `<option value="${h(b)}" ${b===brCur?'selected':''}>${h(b)}</option>`).join('');
+}
+
+// ── Pipeline render ──
+function renderJRPipeline() {
+  const depF    = document.getElementById("jr-f-dep")?.value || "";
+  const branchF = document.getElementById("jr-f-branch")?.value || "";
+  const stF     = document.getElementById("jr-f-st")?.value || "";
+  let filtered = allJR;
+  if (depF)    filtered = filtered.filter(r => r.department === depF);
+  if (branchF) filtered = filtered.filter(r => r.branch === branchF);
+  if (stF)     filtered = filtered.filter(r => r.status === stF);
+
+  const board = document.getElementById("jr-pipeline");
+  if (!board) return;
+  board.innerHTML = "";
+
+  JR_STAGES.forEach(stage => {
+    const cards = filtered.filter(r => (r.status || "Kutish jarayonida") === stage.id);
+    const col = document.createElement("div");
+    col.className = "jr-col";
+    col.dataset.stage = stage.id;
+    col.innerHTML = `<div class="jr-col-head">
+      <div class="jr-col-title"><span class="k-dot" style="background:${stage.color}"></span>${stage.label}</div>
+      <span class="jr-cnt">${cards.length}</span>
+    </div>`;
+
+    cards.forEach(req => {
+      const card = document.createElement("div");
+      card.className = "jr-card";
+      card.draggable = true;
+      card.dataset.id = req.id;
+      const dep = req.department || "";
+      const branch = req.branch || "";
+      const dateStr = req.created_at ? new Date(req.created_at).toLocaleDateString("uz-UZ", {day:"2-digit",month:"short",year:"numeric"}) : "—";
+      card.innerHTML = `
+        <div class="jr-card-title">${h(req.position_name)}</div>
+        <div class="jr-card-sub">
+          <span><i class="fa-solid fa-building" style="font-size:10px;color:#94a3b8"></i> ${h(dep)}</span>
+          <span><i class="fa-solid fa-location-dot" style="font-size:10px;color:#94a3b8"></i> ${h(branch)}</span>
+        </div>
+        <div class="jr-card-foot">
+          <div>
+            <span class="jr-chip"><i class="fa-solid fa-users"></i>${req.employee_count||1}</span>
+            <span class="jr-chip">${h(req.employment_type||'')}</span>
+          </div>
+          <span class="jr-card-time">${dateStr}</span>
+        </div>`;
+      card.addEventListener("click", () => openJRDetail(req.id));
+      card.addEventListener("dragstart", e => { jrDragId = req.id; card.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; });
+      card.addEventListener("dragend", () => { jrDragId = null; card.classList.remove("dragging"); });
+      col.appendChild(card);
+    });
+
+    const dz = document.createElement("div");
+    dz.className = "jr-drop";
+    dz.textContent = "Bu yerga tashlang";
+    dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
+    dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+    dz.addEventListener("drop", async e => {
+      e.preventDefault(); dz.classList.remove("over");
+      if (jrDragId) await moveJRStage(jrDragId, stage.id);
+    });
+    col.appendChild(dz);
+    board.appendChild(col);
+  });
+}
+
+// ── Move stage ──
+async function moveJRStage(id, status) {
+  try {
+    await sbFetch(`job_requests?id=eq.${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+      prefer: "return=minimal"
+    });
+    await loadJR();
+    toast("success", "Status yangilandi!", `So'rov: ${status}`);
+  } catch(e) {
+    toast("error", "Xatolik", e.message);
+  }
+}
+
+// ── Open detail modal ──
+function openJRDetail(id) {
+  jrCurrentId = id;
+  jrEditMode = false;
+  const req = allJR.find(r => r.id === id);
+  if (!req) return;
+  document.getElementById("jrm-t").textContent = `Ish So'rovi — ${h(req.position_name)}`;
+  renderJRDetailView(req);
+  openM("jrm");
+}
+
+function renderJRDetailView(req) {
+  const dateStr = req.created_at ? new Date(req.created_at).toLocaleString("uz-UZ") : "—";
+  const statusBadgeMap = {
+    "Kutish jarayonida": "s-waiting",
+    "Ko'rib chiqilmoqda": "s-processing",
+    "Tasdiqlandi": "s-approved",
+    "Rad etildi": "s-rejected-jr",
+    "Muzlatildi": "s-onhold"
+  };
+  const stCls = statusBadgeMap[req.status] || "s-waiting";
+  document.getElementById("jrm-body").innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="dsec">Tashkilot</div>
+        <div class="dr"><span class="dk">Bo'lim</span><span class="dv"><b>${h(req.department||'—')}</b></span></div>
+        <div class="dr"><span class="dk">Filial</span><span class="dv">${h(req.branch||'—')}</span></div>
+        <div class="dsec">Lavozim</div>
+        <div class="dr"><span class="dk">Nomi</span><span class="dv"><b>${h(req.position_name||'—')}</b></span></div>
+        <div class="dr"><span class="dk">Soni</span><span class="dv">${req.employee_count||1} kishi</span></div>
+        <div class="dr"><span class="dk">Jins</span><span class="dv">${h(req.gender_requirement||'—')}</span></div>
+        <div class="dr"><span class="dk">Bandlik</span><span class="dv">${h(req.employment_type||'—')}</span></div>
+        <div class="dr"><span class="dk">Ish vaqti</span><span class="dv">${h(req.work_hours||'—')}</span></div>
+        ${req.weekly_workload?`<div class="dr"><span class="dk">Haftalik</span><span class="dv">${h(req.weekly_workload)}</span></div>`:''}
+        ${req.target_classes?`<div class="dr"><span class="dk">Sinflar</span><span class="dv">${h(req.target_classes)}</span></div>`:''}
+      </div>
+      <div>
+        <div class="dsec">Sabab va Talablar</div>
+        <div class="dr"><span class="dk">Sababi</span><span class="dv">${h(req.reason_for_need||'—')}${req.reason_other_detail?` — ${h(req.reason_other_detail)}`:''}</span></div>
+        <div class="dr"><span class="dk">Talablar</span><span class="dv" style="line-height:1.6">${h(req.mandatory_requirements||'—')}</span></div>
+        <div class="dr"><span class="dk">Maosh</span><span class="dv" style="color:var(--indigo);font-weight:600">${h(req.offered_salary||'—')}</span></div>
+        ${req.additional_notes?`<div class="dr"><span class="dk">Izoh</span><span class="dv">${h(req.additional_notes)}</span></div>`:''}
+        <div class="dsec">Status va Vaqt</div>
+        <div class="dr"><span class="dk">Status</span><span class="dv"><span class="badge ${stCls}">${h(req.status||'Kutish jarayonida')}</span></span></div>
+        <div class="dr"><span class="dk">Yaratildi</span><span class="dv">${dateStr}</span></div>
+        <div class="dsec">Status o'zgartirish</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          ${JR_STAGES.map(s=>`<button class="btn btn-ghost btn-sm ${req.status===s.id?'btn-primary':''}" style="${req.status===s.id?'background:'+s.color+';color:#fff;border-color:'+s.color:''}" onclick="quickJRStatus('${id}','${s.id}')">${s.label}</button>`).join('')}
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="toggleJREdit()"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
+          <button class="ic-btn ic-d" onclick="delJR('${req.id}')" title="O'chirish"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function quickJRStatus(id, status) {
+  await moveJRStage(id, status);
+  const req = allJR.find(r => r.id === id);
+  if (req) renderJRDetailView(req);
+}
+
+// ── Toggle edit mode ──
+function toggleJREdit() {
+  jrEditMode = !jrEditMode;
+  const req = allJR.find(r => r.id === jrCurrentId);
+  if (!req) return;
+  if (jrEditMode) {
+    renderJREditForm(req);
+  } else {
+    renderJRDetailView(req);
+  }
+}
+
+function renderJREditForm(req) {
+  const depBranches = JR_DEP_BRANCHES;
+  const depKey = Object.keys(depBranches).find(k => req.department && req.department.includes(k)) || "";
+  const branchOpts = (depBranches[depKey]||[]).map(b=>`<option value="${h(b)}" ${req.branch===b?'selected':''}>${h(b)}</option>`).join('');
+  document.getElementById("jrm-body").innerHTML = `
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-building"></i> Tashkilot</div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Bo'lim *</label>
+          <select id="jre-dep" style="width:100%" onchange="onJREDepChange()">
+            <option value="">— Tanlang —</option>
+            ${Object.keys(depBranches).map(d=>`<option value="${h(d)}" ${depKey===d?'selected':''}>${h(d)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Filial *</label>
+          <select id="jre-branch" style="width:100%">
+            <option value="">— Tanlang —</option>${branchOpts}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-briefcase"></i> Lavozim</div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Lavozim nomi *</label><input type="text" id="jre-pos" value="${h(req.position_name||'')}" style="width:100%"></div>
+        <div class="fg"><label class="fl">Xodim soni *</label><input type="number" id="jre-cnt" value="${req.employee_count||1}" min="1" style="width:100%"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Jins *</label>
+          <select id="jre-gender" style="width:100%">
+            ${["Farq qilmaydi","Erkak","Ayol"].map(g=>`<option ${req.gender_requirement===g?'selected':''}>${g}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Bandlik *</label>
+          <select id="jre-emp" style="width:100%">
+            ${["To'liq stavka","Yarim stavka","Soatbay","Shartnoma asosida"].map(e=>`<option ${req.employment_type===e?'selected':''}>${e}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Ish vaqti *</label><input type="text" id="jre-hours" value="${h(req.work_hours||'')}" style="width:100%"></div>
+        <div class="fg"><label class="fl">Haftalik yuklanma</label><input type="text" id="jre-weekly" value="${h(req.weekly_workload||'')}" style="width:100%"></div>
+      </div>
+      <div class="fg"><label class="fl">Maqsadli sinflar</label><input type="text" id="jre-classes" value="${h(req.target_classes||'')}" style="width:100%"></div>
+    </div>
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-circle-question"></i> Sabab va Talablar</div>
+      <div class="fg"><label class="fl">Sababi *</label>
+        <select id="jre-reason" onchange="onJREReasonChange()" style="width:100%">
+          ${["Yangi o'rin","Almashtirish","Kengayish","Mavsumiy","Boshqa"].map(r=>`<option ${req.reason_for_need===r?'selected':''}>${r}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg" id="jre-reason-other-wrap" style="display:${req.reason_for_need==='Boshqa'?'block':'none'}">
+        <label class="fl">Izoh</label><input type="text" id="jre-reason-other" value="${h(req.reason_other_detail||'')}" style="width:100%">
+      </div>
+      <div class="fg"><label class="fl">Talablar *</label><textarea id="jre-reqs" style="width:100%;min-height:80px">${h(req.mandatory_requirements||'')}</textarea></div>
+    </div>
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-money-bill"></i> Maosh</div>
+      <div class="fg"><label class="fl">Taklif etilayotgan maosh *</label><input type="text" id="jre-salary" value="${h(req.offered_salary||'')}" style="width:100%"></div>
+      <div class="fg"><label class="fl">Qo'shimcha izoh</label><textarea id="jre-notes" style="width:100%;min-height:60px">${h(req.additional_notes||'')}</textarea></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-primary" onclick="saveJREdit()"><i class="fa-solid fa-floppy-disk"></i> Saqlash</button>
+      <button class="btn btn-ghost" onclick="toggleJREdit()">Bekor</button>
+    </div>`;
+}
+
+function onJREDepChange() {
+  const dep = document.getElementById("jre-dep").value;
+  const sel = document.getElementById("jre-branch");
+  const branches = JR_DEP_BRANCHES[dep] || [];
+  sel.innerHTML = `<option value="">— Tanlang —</option>` + branches.map(b=>`<option>${h(b)}</option>`).join('');
+}
+function onJREReasonChange() {
+  const v = document.getElementById("jre-reason").value;
+  document.getElementById("jre-reason-other-wrap").style.display = v === "Boshqa" ? "block" : "none";
+}
+
+async function saveJREdit() {
+  const dep = document.getElementById("jre-dep").value;
+  const branch = document.getElementById("jre-branch").value;
+  const pos = document.getElementById("jre-pos").value.trim();
+  if (!pos) { alert("Lavozim nomi bo'sh!"); return; }
+  const payload = {
+    department: dep,
+    branch,
+    position_name: pos,
+    employee_count: parseInt(document.getElementById("jre-cnt").value)||1,
+    gender_requirement: document.getElementById("jre-gender").value,
+    employment_type: document.getElementById("jre-emp").value,
+    work_hours: document.getElementById("jre-hours").value.trim(),
+    weekly_workload: document.getElementById("jre-weekly").value.trim(),
+    target_classes: document.getElementById("jre-classes").value.trim(),
+    reason_for_need: document.getElementById("jre-reason").value,
+    reason_other_detail: document.getElementById("jre-reason-other")?.value.trim()||"",
+    mandatory_requirements: document.getElementById("jre-reqs").value.trim(),
+    offered_salary: document.getElementById("jre-salary").value.trim(),
+    additional_notes: document.getElementById("jre-notes").value.trim(),
+  };
+  try {
+    await sbFetch(`job_requests?id=eq.${jrCurrentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+      prefer: "return=minimal"
+    });
+    await loadJR();
+    closeM("jrm");
+    toast("success", "Saqlandi!", "Ish so'rovi yangilandi.");
+  } catch(e) {
+    toast("error", "Xatolik", e.message);
+  }
+}
+
+async function delJR(id) {
+  if (!confirm("Ish so'rovi o'chirilsinmi?")) return;
+  try {
+    await sbFetch(`job_requests?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" });
+    await loadJR();
+    closeM("jrm");
+    toast("success", "O'chirildi!", "Ish so'rovi o'chirildi.");
+  } catch(e) {
+    toast("error", "Xatolik", e.message);
+  }
+}
+
+// ── New JR modal helpers ──
+function openJRModal() {
+  // Reset form
+  ["jrn-pos","jrn-hours","jrn-weekly","jrn-classes","jrn-salary","jrn-notes"].forEach(id => { const el=document.getElementById(id); if(el) el.value=""; });
+  document.getElementById("jrn-dep").value = "";
+  document.getElementById("jrn-branch").innerHTML = `<option value="">— Avval bo'lim tanlang —</option>`;
+  document.getElementById("jrn-gender").value = "Farq qilmaydi";
+  document.getElementById("jrn-emp").value = "To'liq stavka";
+  document.getElementById("jrn-reason").value = "";
+  document.getElementById("jrn-cnt").value = 1;
+  document.getElementById("jrn-reason-other-wrap").style.display = "none";
+  openM("jrnew");
+}
+
+function onJRDepChange() {
+  const dep = document.getElementById("jrn-dep").value;
+  const sel = document.getElementById("jrn-branch");
+  const branches = JR_DEP_BRANCHES[dep] || [];
+  sel.innerHTML = `<option value="">— Tanlang —</option>` + branches.map(b=>`<option>${h(b)}</option>`).join('');
+}
+
+function onJRReasonChange() {
+  const v = document.getElementById("jrn-reason").value;
+  document.getElementById("jrn-reason-other-wrap").style.display = v === "Boshqa" ? "block" : "none";
+}
+
+async function saveJRNew() {
+  const dep = document.getElementById("jrn-dep").value;
+  const branch = document.getElementById("jrn-branch").value;
+  const pos = document.getElementById("jrn-pos").value.trim();
+  const reason = document.getElementById("jrn-reason").value;
+  const reqs = document.getElementById("jrn-reqs").value.trim();
+  const salary = document.getElementById("jrn-salary").value.trim();
+  const hours = document.getElementById("jrn-hours").value.trim();
+  if (!dep)    { alert("Bo'limni tanlang!"); return; }
+  if (!branch) { alert("Filialni tanlang!"); return; }
+  if (!pos)    { alert("Lavozim nomini kiriting!"); return; }
+  if (!reason) { alert("Sababni tanlang!"); return; }
+  if (!reqs)   { alert("Talablarni kiriting!"); return; }
+  if (!salary) { alert("Maoshni kiriting!"); return; }
+  if (!hours)  { alert("Ish vaqtini kiriting!"); return; }
+
+  const payload = {
+    department: dep,
+    branch,
+    position_name: pos,
+    employee_count: parseInt(document.getElementById("jrn-cnt").value)||1,
+    gender_requirement: document.getElementById("jrn-gender").value,
+    employment_type: document.getElementById("jrn-emp").value,
+    work_hours: hours,
+    weekly_workload: document.getElementById("jrn-weekly").value.trim(),
+    target_classes: document.getElementById("jrn-classes").value.trim(),
+    reason_for_need: reason,
+    reason_other_detail: document.getElementById("jrn-reason-other")?.value.trim()||"",
+    mandatory_requirements: reqs,
+    offered_salary: salary,
+    additional_notes: document.getElementById("jrn-notes").value.trim(),
+    status: "Kutish jarayonida"
+  };
+
+  try {
+    await sbFetch("job_requests", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      prefer: "return=minimal"
+    });
+    await loadJR();
+    closeM("jrnew");
+    toast("success", "Saqlandi!", `"${pos}" uchun so'rov qo'shildi.`);
+  } catch(e) {
+    toast("error", "Xatolik", e.message);
+  }
+}
+
+// ── Excel export ──
+function exportJRExcel() {
+  if (!allJR.length) { alert("Ma'lumot yo'q!"); return; }
+  const rows = allJR.map(r => ({
+    "ID": r.id,
+    "Bo'lim": r.department||"",
+    "Filial": r.branch||"",
+    "Lavozim": r.position_name||"",
+    "Soni": r.employee_count||1,
+    "Jins": r.gender_requirement||"",
+    "Bandlik": r.employment_type||"",
+    "Ish vaqti": r.work_hours||"",
+    "Sababi": r.reason_for_need||"",
+    "Talablar": r.mandatory_requirements||"",
+    "Maosh": r.offered_salary||"",
+    "Status": r.status||"",
+    "Yaratildi": r.created_at ? new Date(r.created_at).toLocaleString("uz-UZ") : ""
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ish So'rovlari");
+  XLSX.writeFile(wb, "ish_sorovlari_" + new Date().toISOString().slice(0,10) + ".xlsx");
+}
+
 checkAuth();
-setInterval(loadAll,60000);
+setInterval(()=>{ loadAll(); loadJR(); },60000);
 </script>
 </body>
 </html>

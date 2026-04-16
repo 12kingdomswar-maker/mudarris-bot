@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mudarris — Ish So'rovlari</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',sans-serif}
+:root{
+  --bg:#f3f4f6;--card:#fff;--text:#111827;--muted:#6b7280;
+  --border:#e5e7eb;--accent:#1e1e2e;
+  --indigo:#1a56db;--indigo-l:#eff6ff;
+  --green:#15803d;--red:#dc2626;--blue:#0369a1;
+  --r:14px;--rm:9px;
+  --shadow:0 2px 8px rgba(0,0,0,.06);
+}
+body{background:var(--bg);color:var(--text);user-select:none}
+
+/* ── LOGIN ── */
+#login-page{position:fixed;inset:0;z-index:9999;background:#000;overflow:hidden}
+#login-bg{position:absolute;inset:0;background-image:url("https://i.pinimg.com/1200x/c6/57/20/c65720d67c6880a6f2c7343d8dbe99c3.jpg");background-size:cover;background-position:center;z-index:1}
+#login-overlay{position:absolute;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;z-index:10}
+.login-form{background:transparent;width:100%;max-width:400px;text-align:center;padding:0 20px}
+.login-logo{width:200px;margin:0 auto 36px;display:block;filter:drop-shadow(0 2px 12px rgba(0,0,0,.4))}
+.inp-group{position:relative;margin-bottom:14px;width:100%}
+.inp-group i{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:#fff;z-index:5;font-size:15px}
+#login-overlay input[type=text],#login-overlay input[type=password]{
+  display:block;width:100%;height:52px;padding:0 16px 0 50px;border:none;border-radius:15px;
+  background:rgba(255,255,255,.2);backdrop-filter:blur(8px);color:#fff;font-size:1rem;outline:none;
+  transition:.3s;font-family:'Poppins',sans-serif}
+#login-overlay input::placeholder{color:rgba(255,255,255,.8)}
+#login-overlay input:focus{background:rgba(255,255,255,.28)}
+.login-btn{display:flex;width:100%;height:52px;padding:0 16px;border:none;border-radius:15px;background:#fff;color:#1a1a1c;font-weight:700;font-size:1.1rem;cursor:pointer;justify-content:center;align-items:center;gap:10px;transition:.3s;font-family:'Poppins',sans-serif;margin-top:6px}
+.login-btn:hover{background:#6366f1;color:#fff;transform:translateY(-2px)}
+.login-err{color:#ff8a80;margin-top:14px;display:none;font-size:.9rem;background:rgba(0,0,0,.6);padding:10px;border-radius:10px;width:100%}
+
+/* ── LAYOUT ── */
+#app{display:none;width:100vw;height:100vh;overflow:hidden;flex-direction:row}
+#app.shown{display:flex}
+
+/* ── SIDEBAR ── */
+.sidebar{width:252px;background:var(--card);display:flex;flex-direction:column;padding:20px 12px;border-right:1px solid var(--border);height:100%;flex-shrink:0;box-shadow:2px 0 8px rgba(0,0,0,.03)}
+.logo{display:flex;flex-direction:column;align-items:center;padding:0 0 24px 0;margin-bottom:4px;border-bottom:1px solid var(--border)}
+.nav-section{font-size:10px;font-weight:700;color:#d1d5db;text-transform:uppercase;letter-spacing:.8px;padding:0 10px;margin-bottom:4px;margin-top:16px}
+.nav-item{display:flex;align-items:center;padding:10px 12px;color:var(--muted);font-size:13.5px;font-weight:500;border-radius:var(--rm);transition:.15s;cursor:pointer;gap:10px}
+.nav-item i{width:18px;font-size:15px;text-align:center}
+.nav-item:hover{background:#f3f4f6;color:var(--text)}
+.nav-item.active{background:var(--indigo-l);color:var(--indigo);font-weight:600}
+.nav-badge{margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center}
+.sidebar-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:14px}
+.user-row{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:var(--rm)}
+.user-av{width:34px;height:34px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:11px;color:var(--muted)}
+.logout-btn{background:none;border:none;color:#9ca3af;cursor:pointer;padding:5px;border-radius:6px;transition:.15s;font-size:13px}
+.logout-btn:hover{color:#ef4444;background:#fef2f2}
+.conn-row{display:flex;align-items:center;gap:6px;padding:6px 6px 0;font-size:11px;color:var(--muted)}
+.cdot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.cdot.off{background:#ef4444}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{background:var(--card);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;gap:12px}
+.topbar h2{font-size:20px;font-weight:700;white-space:nowrap}
+.topbar-r{display:flex;gap:10px;align-items:center}
+.sinput-w{position:relative}
+.sinput-w i{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:13px;pointer-events:none}
+.sinput{background:#f3f4f6;border:1.5px solid transparent;padding:9px 16px 9px 38px;border-radius:var(--rm);outline:none;font-size:13px;width:230px;transition:.2s;font-family:'Poppins',sans-serif}
+.sinput:focus{border-color:var(--indigo);background:#fff}
+.content{flex:1;overflow-y:auto;padding:28px 32px}
+.page{display:none}.page.active{display:block}
+
+/* ── STATS ── */
+.jr-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--card);padding:20px;border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow)}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-val{font-size:32px;font-weight:700;line-height:1}
+.stat-val.green{color:var(--green)}.stat-val.blue{color:var(--blue)}
+.stat-val.purple{color:var(--indigo)}.stat-val.orange{color:#c2410c}.stat-val.red{color:var(--red)}
+
+/* ── CARD ── */
+.card{background:var(--card);border-radius:var(--r);padding:22px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:18px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.card-title{font-size:16px;font-weight:600}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{text-align:left;font-size:11px;text-transform:uppercase;color:var(--muted);padding:11px 10px;letter-spacing:.5px;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap}
+td{padding:13px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.nm{font-weight:600;font-size:13px}
+.ns{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.s-waiting{background:#fef3c7;color:#b45309}
+.s-processing{background:#dbeafe;color:#1d4ed8}
+.s-approved{background:#dcfce7;color:#15803d}
+.s-rejected-jr{background:#fee2e2;color:#b91c1c}
+.s-onhold{background:#f3e8ff;color:#7e22ce}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--rm);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:.15s;font-family:'Poppins',sans-serif;white-space:nowrap}
+.btn-dark{background:var(--accent);color:#fff}.btn-dark:hover{opacity:.88;transform:translateY(-1px)}
+.btn-primary{background:var(--indigo);color:#fff}.btn-primary:hover{background:#4f46e5;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--indigo);border:1.5px solid #e0e0f0}.btn-ghost:hover{background:var(--indigo-l)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-excel{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rm);font-size:12.5px;font-weight:500;cursor:pointer;border:1.5px solid #16a34a;background:#f0fdf4;color:#16a34a;font-family:'Poppins',sans-serif;transition:.15s}
+.btn-excel:hover{background:#16a34a;color:#fff}
+.fsel{background:#fff;border:1.5px solid var(--border);border-radius:var(--rm);padding:8px 32px 8px 12px;font-size:13px;color:#374151;font-family:'Poppins',sans-serif;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:.15s}
+.fsel:focus{border-color:var(--indigo)}
+.ic-btn{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:.15s;border:1.5px solid}
+.ic-v{background:#f0f4ff;border-color:#c7d2fe;color:#4f46e5}.ic-v:hover{background:#4f46e5;color:#fff}
+.ic-e{background:#fefce8;border-color:#fde68a;color:#b45309}.ic-e:hover{background:#b45309;color:#fff}
+.ic-d{background:#fef2f2;border-color:#fecaca;color:#dc2626}.ic-d:hover{background:#dc2626;color:#fff}
+.act{display:flex;gap:5px;align-items:center}
+
+/* ── INPUTS ── */
+input[type=text],input[type=date],input[type=number],input[type=password],select,textarea{
+  font-family:'Poppins',sans-serif;border:1.5px solid var(--border);
+  border-radius:var(--rm);padding:9px 13px;font-size:13px;
+  color:var(--text);background:#fff;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+textarea{resize:vertical;min-height:80px}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:26px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.2)}
+.modal-sm{max-width:440px}.modal-md{max-width:580px}.modal-lg{max-width:820px}
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mhead h3{font-size:16px;font-weight:700}
+.mclose{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;transition:.15s}
+.mclose:hover{background:#f3f4f6;color:var(--text)}
+.fg{margin-bottom:14px}
+.fl{font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select,.fg textarea{width:100%}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mf{display:flex;gap:8px;margin-top:18px}.mf .btn{flex:1;justify-content:center}
+
+/* ── DETAIL ── */
+.dr{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.dr:last-child{border-bottom:none}
+.dk{font-size:11px;font-weight:600;color:var(--muted);min-width:86px;text-transform:uppercase;letter-spacing:.3px;padding-top:2px;flex-shrink:0}
+.dv{font-size:13px;color:#334155;flex:1;word-break:break-word}
+.dsec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}
+
+/* ── PIPELINE ── */
+.jr-pipeline{display:flex;gap:14px;overflow-x:auto;padding-bottom:14px;min-height:calc(100vh - 280px)}
+.jr-col{flex-shrink:0;width:230px;background:#f8fafc;border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;border:1px solid var(--border)}
+.jr-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.jr-col-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.k-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.jr-cnt{background:#fff;color:var(--muted);font-size:11px;font-weight:600;padding:1px 8px;border-radius:10px;border:1px solid var(--border)}
+.jr-card{background:#fff;border-radius:10px;padding:12px;border:1px solid var(--border);cursor:pointer;transition:.15s}
+.jr-card:hover{border-color:var(--indigo);box-shadow:0 4px 14px rgba(99,102,241,.14);transform:translateY(-1px)}
+.jr-card.dragging{opacity:.35;transform:scale(.97)}
+.jr-card-title{font-size:13px;font-weight:600;margin-bottom:3px;line-height:1.3}
+.jr-card-sub{font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-direction:column;gap:2px}
+.jr-card-foot{display:flex;align-items:center;justify-content:space-between}
+.jr-card-time{font-size:10px;color:#94a3b8}
+.jr-drop{min-height:50px;border:2px dashed #e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#cbd5e1;transition:.15s;margin-top:4px}
+.jr-drop.over{border-color:var(--indigo);background:var(--indigo-l);color:var(--indigo)}
+.jr-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:#f1f5f9;border-radius:5px;font-size:10px;color:#475569;font-weight:500;margin-right:3px;margin-top:2px}
+.jr-form-section{background:#f8fafc;border-radius:10px;padding:14px 16px;margin-bottom:14px;border:1px solid #e2e8f0}
+.jr-form-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+
+/* ── VIEW TOGGLE ── */
+.view-tabs{display:flex;background:#f1f5f9;border-radius:10px;padding:3px;gap:2px;flex-shrink:0}
+.view-tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);transition:.15s;border:none;background:transparent;font-family:'Poppins',sans-serif;display:flex;align-items:center;gap:5px}
+.view-tab.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* ── LOADING ── */
+.loading-wrap{display:flex;align-items:center;justify-content:center;padding:60px;flex-direction:column;gap:14px;color:var(--muted)}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--indigo);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── EMPTY ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;color:var(--muted)}
+.empty-state i{font-size:40px;color:#d1d5db}
+.empty-state p{font-size:14px}
+
+/* ── TOAST ── */
+#toast-wrap{position:fixed;top:20px;right:20px;z-index:9000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.14);border:1px solid var(--border);min-width:280px;max-width:360px;pointer-events:all;animation:tslide .3s ease}
+@keyframes tslide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.toast.hide{animation:thide .3s ease forwards}
+@keyframes thide{to{opacity:0;transform:translateX(40px)}}
+.toast-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.toast-success .toast-icon{background:#dcfce7;color:#15803d}
+.toast-error .toast-icon{background:#fee2e2;color:#dc2626}
+.toast-info .toast-icon{background:#dbeafe;color:#1d4ed8}
+.toast-warn .toast-icon{background:#fef3c7;color:#b45309}
+.toast-body{flex:1;min-width:0}
+.toast-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.toast-msg{font-size:12px;color:var(--muted);line-height:1.4}
+.toast-close{background:none;border:none;color:#9ca3af;cursor:pointer;padding:2px;font-size:14px;line-height:1;flex-shrink:0}
+.toast-close:hover{color:var(--text)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:10px}
+
+/* ── SEARCH HIGHLIGHT ── */
+.hl{background:#fef08a;border-radius:2px;padding:0 1px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div id="login-bg"></div>
+  <div id="login-overlay">
+    <div class="login-form">
+      <img src="https://img4.teletype.in/files/b4/19/b4199a12-9b48-4836-8388-4d4429ad8fa2.png" class="login-logo" alt="Mudarris">
+      <div class="inp-group"><i class="fas fa-user"></i><input type="text" id="l-u" placeholder="Foydalanuvchi nomi" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="inp-group"><i class="fas fa-lock"></i><input type="password" id="l-p" placeholder="Parol" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="login-btn" onclick="doLogin()"><span>Kirish</span><i class="fas fa-arrow-right"></i></button>
+      <div class="login-err" id="lerr"><i class="fas fa-exclamation-circle"></i> Login yoki parol noto'g'ri!</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<aside class="sidebar">
+  <div class="logo">
+    <img src="https://img4.teletype.in/files/76/a3/76a388ae-14d6-459c-83ce-ea8e017f0c6f.png" alt="Mudarris"
+      style="height:32px;width:auto;max-width:160px;object-fit:contain;display:block;margin-bottom:10px"
+      onerror="this.style.display='none'">
+    <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:.2px">Mudarris HR</div>
+    <div style="font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.4px;text-transform:uppercase;margin-top:1px">Ish So'rovlari</div>
+  </div>
+
+  <div class="nav-section">Ko'rinish</div>
+  <div class="nav-item active" id="nav-pipeline" onclick="setView('pipeline',this)"><i class="fa-solid fa-table-columns" style="color:#8b5cf6"></i> Pipeline</div>
+  <div class="nav-item" id="nav-table" onclick="setView('table',this)"><i class="fa-solid fa-table" style="color:#3b82f6"></i> Jadval<span class="nav-badge" id="nb-total" style="display:none">0</span></div>
+
+  <div class="nav-section">Filtrlar</div>
+  <div style="padding:0 6px">
+    <div class="fg" style="margin-bottom:10px">
+      <label class="fl" style="margin-bottom:4px">Bo'lim</label>
+      <select id="sb-dep" class="fsel" style="width:100%" onchange="applyFilters()"><option value="">Barcha</option></select>
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <label class="fl" style="margin-bottom:4px">Filial</label>
+      <select id="sb-branch" class="fsel" style="width:100%" onchange="applyFilters()"><option value="">Barcha</option></select>
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <label class="fl" style="margin-bottom:4px">Status</label>
+      <select id="sb-status" class="fsel" style="width:100%" onchange="applyFilters()">
+        <option value="">Barcha</option>
+        <option value="Kutish jarayonida">⏳ Kutish</option>
+        <option value="Ko'rib chiqilmoqda">🔍 Jarayonda</option>
+        <option value="Tasdiqlandi">✅ Tasdiqlandi</option>
+        <option value="Rad etildi">❌ Rad etildi</option>
+        <option value="Muzlatildi">⏸ Muzlatildi</option>
+      </select>
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <label class="fl" style="margin-bottom:4px">Bandlik</label>
+      <select id="sb-emp" class="fsel" style="width:100%" onchange="applyFilters()">
+        <option value="">Barcha</option>
+        <option>To'liq stavka</option>
+        <option>Yarim stavka</option>
+        <option>Soatbay</option>
+        <option>Shartnoma asosida</option>
+      </select>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="clearFilters()"><i class="fa-solid fa-xmark"></i> Filtrni tozalash</button>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="user-row">
+      <div class="user-av" id="uav">A</div>
+      <div class="user-info"><div class="user-name" id="uname">Admin</div><div class="user-role" id="urole">HR Manager</div></div>
+      <button class="logout-btn" onclick="doLogout()" title="Chiqish"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </div>
+    <div class="conn-row"><div class="cdot" id="cdot"></div><span id="ctext">Supabase ulangan</span></div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="ptitle">Ish So'rovlari — Pipeline</h2>
+    <div class="topbar-r">
+      <div class="sinput-w"><i class="fa-solid fa-magnifying-glass"></i><input class="sinput" id="gsearch" placeholder="Qidirish..." oninput="applyFilters()"></div>
+      <button class="btn-excel btn-sm" onclick="exportExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+      <button class="btn btn-primary btn-sm" onclick="openNewModal()"><i class="fa-solid fa-plus"></i> Yangi so'rov</button>
+      <button class="btn btn-dark btn-sm" onclick="loadData(true)"><i class="fa-solid fa-rotate"></i></button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="jr-stats" id="stats-wrap">
+      <div class="stat-card"><div class="stat-label">Jami</div><div class="stat-val blue" id="s-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">Kutish</div><div class="stat-val orange" id="s-wait">—</div></div>
+      <div class="stat-card"><div class="stat-label">Jarayonda</div><div class="stat-val purple" id="s-proc">—</div></div>
+      <div class="stat-card"><div class="stat-label">Tasdiqlandi</div><div class="stat-val green" id="s-appr">—</div></div>
+      <div class="stat-card"><div class="stat-label">Rad etildi</div><div class="stat-val red" id="s-rej">—</div></div>
+    </div>
+
+    <!-- PIPELINE VIEW -->
+    <div id="view-pipeline" class="page active">
+      <div id="pipeline-board" class="jr-pipeline"></div>
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div id="view-table" class="page">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Barcha ish so'rovlari</span>
+          <div style="font-size:12px;color:var(--muted)" id="tbl-count"></div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Lavozim</th>
+                <th>Bo'lim</th>
+                <th>Filial</th>
+                <th>Soni</th>
+                <th>Bandlik</th>
+                <th>Maosh</th>
+                <th>Status</th>
+                <th>Sana</th>
+                <th>Amal</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div><!-- #app -->
+
+<!-- ═══════════ DETAIL MODAL ═══════════ -->
+<div class="overlay" id="dm"><div class="modal modal-lg">
+  <div class="mhead">
+    <h3 id="dm-title">Ish So'rovi</h3>
+    <button class="mclose" onclick="closeM('dm')">×</button>
+  </div>
+  <div id="dm-body"></div>
+</div></div>
+
+<!-- ═══════════ NEW MODAL ═══════════ -->
+<div class="overlay" id="nm"><div class="modal modal-lg">
+  <div class="mhead">
+    <h3>Yangi Ish So'rovi</h3>
+    <button class="mclose" onclick="closeM('nm')">×</button>
+  </div>
+  <div id="nm-body">
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-building"></i> Tashkilot</div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Bo'lim *</label>
+          <select id="n-dep" style="width:100%" onchange="onDepChange('n')">
+            <option value="">— Tanlang —</option>
+            <option>Maktabgacha ta'lim</option>
+            <option>Boshlang'ich sinf</option>
+            <option>O'rta sinf</option>
+            <option>Yuqori sinf</option>
+            <option>Ingliz tili bo'limi</option>
+            <option>STEM bo'lim</option>
+            <option>Sport bo'limi</option>
+            <option>San'at bo'limi</option>
+            <option>Psixologiya xizmati</option>
+            <option>Ma'muriyat</option>
+            <option>Moliya bo'limi</option>
+            <option>IT bo'lim</option>
+            <option>Xo'jalik bo'limi</option>
+            <option>Boshqa</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Filial *</label>
+          <select id="n-branch" style="width:100%"><option value="">— Avval bo'lim tanlang —</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-briefcase"></i> Lavozim</div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Lavozim nomi *</label><input type="text" id="n-pos" style="width:100%" placeholder="Masalan: Matematika o'qituvchisi"></div>
+        <div class="fg"><label class="fl">Xodim soni *</label><input type="number" id="n-cnt" value="1" min="1" style="width:100%"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Jins *</label>
+          <select id="n-gender" style="width:100%">
+            <option>Farq qilmaydi</option><option>Erkak</option><option>Ayol</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Bandlik *</label>
+          <select id="n-emp" style="width:100%">
+            <option>To'liq stavka</option><option>Yarim stavka</option><option>Soatbay</option><option>Shartnoma asosida</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label class="fl">Ish vaqti *</label><input type="text" id="n-hours" style="width:100%" placeholder="Masalan: 08:00–17:00"></div>
+        <div class="fg"><label class="fl">Haftalik yuklanma</label><input type="text" id="n-weekly" style="width:100%" placeholder="Masalan: 28 soat"></div>
+      </div>
+      <div class="fg"><label class="fl">Maqsadli sinflar</label><input type="text" id="n-classes" style="width:100%" placeholder="Masalan: 1–4 sinflar"></div>
+    </div>
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-circle-question"></i> Sabab va Talablar</div>
+      <div class="fg"><label class="fl">Sababi *</label>
+        <select id="n-reason" onchange="toggleReasonOther('n')" style="width:100%">
+          <option value="">— Tanlang —</option>
+          <option>Yangi o'rin</option><option>Almashtirish</option><option>Kengayish</option><option>Mavsumiy</option><option>Boshqa</option>
+        </select>
+      </div>
+      <div class="fg" id="n-reason-other-wrap" style="display:none">
+        <label class="fl">Izoh</label><input type="text" id="n-reason-other" style="width:100%" placeholder="Batafsil tushuntiring...">
+      </div>
+      <div class="fg"><label class="fl">Majburiy talablar *</label><textarea id="n-reqs" style="width:100%;min-height:80px" placeholder="Diplom, tajriba, sertifikat..."></textarea></div>
+    </div>
+    <div class="jr-form-section">
+      <div class="jr-form-section-title"><i class="fa-solid fa-money-bill"></i> Maosh</div>
+      <div class="fg"><label class="fl">Taklif etilayotgan maosh *</label><input type="text" id="n-salary" style="width:100%" placeholder="Masalan: 3 000 000 – 5 000 000 so'm"></div>
+      <div class="fg"><label class="fl">Qo'shimcha izoh</label><textarea id="n-notes" style="width:100%;min-height:60px" placeholder="Ixtiyoriy..."></textarea></div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-primary" onclick="saveNew()"><i class="fa-solid fa-floppy-disk"></i> Saqlash</button>
+    <button class="btn btn-ghost" onclick="closeM('nm')">Bekor</button>
+  </div>
+</div></div>
+
+<!-- TOAST -->
+<div id="toast-wrap"></div>
+
+<script>
+// ══════════════ CONFIG ══════════════
+const SB_URL  = "https://vfunkjtksjowziawzfkl.supabase.co";
+const SB_KEY  = "sb_publishable_Z4sgABsYp10t0Vr-Ygpyjw_tCYIw2WT";
+const TABLE   = "job_requests";
+
+const CREDENTIALS = {
+  "admin":     { password: "admin123", role: "super_admin",  name: "Super Admin" },
+  "hr":        { password: "hr1234",   role: "hr_manager",   name: "HR Manager"  },
+  "recruiter": { password: "recruit123", role: "recruiter",  name: "Recruiter"   }
+};
+
+const JR_STAGES = [
+  { id: "Kutish jarayonida",  label: "⏳ Kutish",     color: "#f59e0b" },
+  { id: "Ko'rib chiqilmoqda", label: "🔍 Jarayonda",  color: "#3b82f6" },
+  { id: "Tasdiqlandi",        label: "✅ Tasdiqlandi", color: "#22c55e" },
+  { id: "Rad etildi",         label: "❌ Rad etildi",  color: "#ef4444" },
+  { id: "Muzlatildi",         label: "⏸ Muzlatildi",  color: "#a78bfa" },
+];
+
+const BADGE_MAP = {
+  "Kutish jarayonida":  "s-waiting",
+  "Ko'rib chiqilmoqda": "s-processing",
+  "Tasdiqlandi":        "s-approved",
+  "Rad etildi":         "s-rejected-jr",
+  "Muzlatildi":         "s-onhold"
+};
+
+const DEP_BRANCHES = {
+  "Maktabgacha ta'lim": ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli", "Bektemir"],
+  "Boshlang'ich sinf":  ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli", "Bektemir"],
+  "O'rta sinf":         ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli", "Bektemir"],
+  "Yuqori sinf":        ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli", "Bektemir"],
+  "Ingliz tili bo'limi":["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli"],
+  "STEM bo'lim":        ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek"],
+  "Sport bo'limi":      ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli", "Bektemir"],
+  "San'at bo'limi":     ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek"],
+  "Psixologiya xizmati":["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli"],
+  "Ma'muriyat":         ["Bosh ofis", "Chilonzor", "Yunusobod"],
+  "Moliya bo'limi":     ["Bosh ofis"],
+  "IT bo'lim":          ["Bosh ofis"],
+  "Xo'jalik bo'limi":   ["Chilonzor", "Yunusobod", "Mirzo Ulug'bek", "Sergeli", "Bektemir"],
+  "Boshqa":             ["Bosh ofis", "Boshqa filial"],
+};
+
+// ══════════════ STATE ══════════════
+let allData    = [];
+let filtered   = [];
+let curView    = "pipeline";
+let curUser    = null;
+let dragId     = null;
+let editId     = null;
+
+// ══════════════ SUPABASE FETCH ══════════════
+async function sbFetch(path, opts = {}) {
+  const url  = `${SB_URL}/rest/v1/${path}`;
+  const res  = await fetch(url, {
+    ...opts,
+    headers: {
+      "Content-Type":  "application/json",
+      "apikey":        SB_KEY,
+      "Authorization": "Bearer " + SB_KEY,
+      "Prefer":        opts.prefer || "return=representation",
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || res.statusText);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ══════════════ AUTH ══════════════
+function doLogin() {
+  const u = document.getElementById("l-u").value.trim();
+  const p = document.getElementById("l-p").value.trim();
+  const cred = CREDENTIALS[u];
+  if (!cred || cred.password !== p) {
+    const el = document.getElementById("lerr"); el.style.display = "block";
+    setTimeout(() => el.style.display = "none", 3000); return;
+  }
+  curUser = { username: u, role: cred.role, name: cred.name };
+  localStorage.setItem("jr_user", JSON.stringify(curUser));
+  document.getElementById("login-page").style.display = "none";
+  document.getElementById("app").classList.add("shown");
+  document.getElementById("uav").textContent  = cred.name[0].toUpperCase();
+  document.getElementById("uname").textContent = cred.name;
+  document.getElementById("urole").textContent  = cred.role === "super_admin" ? "Super Admin" : cred.role === "hr_manager" ? "HR Manager" : "Recruiter";
+  loadData(true);
+}
+
+function doLogout() {
+  localStorage.removeItem("jr_user");
+  location.reload();
+}
+
+function checkAuth() {
+  const saved = localStorage.getItem("jr_user");
+  if (saved) {
+    curUser = JSON.parse(saved);
+    document.getElementById("login-page").style.display = "none";
+    document.getElementById("app").classList.add("shown");
+    document.getElementById("uav").textContent   = curUser.name[0].toUpperCase();
+    document.getElementById("uname").textContent  = curUser.name;
+    document.getElementById("urole").textContent  = curUser.role === "super_admin" ? "Super Admin" : curUser.role === "hr_manager" ? "HR Manager" : "Recruiter";
+    loadData(true);
+  }
+}
+
+// ══════════════ DATA LOAD ══════════════
+async function loadData(showSpinner = false) {
+  if (showSpinner) showLoading();
+  try {
+    const data = await sbFetch(`${TABLE}?order=created_at.desc`);
+    allData = data || [];
+    buildFilterDropdowns();
+    applyFilters();
+    updateStats();
+    updateConn(true);
+  } catch(e) {
+    toast("error", "Xatolik", e.message);
+    updateConn(false);
+  }
+}
+
+function updateConn(ok) {
+  const dot  = document.getElementById("cdot");
+  const text = document.getElementById("ctext");
+  dot.className  = "cdot" + (ok ? "" : " off");
+  text.textContent = ok ? "Supabase ulangan" : "Ulanish xatosi";
+}
+
+function showLoading() {
+  if (curView === "pipeline") {
+    document.getElementById("pipeline-board").innerHTML =
+      `<div class="loading-wrap" style="width:100%"><div class="spinner"></div><span>Yuklanmoqda…</span></div>`;
+  }
+}
+
+// ══════════════ FILTER DROPDOWNS ══════════════
+function buildFilterDropdowns() {
+  const deps    = [...new Set(allData.map(r => r.department).filter(Boolean))].sort();
+  const branches= [...new Set(allData.map(r => r.branch).filter(Boolean))].sort();
+
+  const selDep = document.getElementById("sb-dep");
+  const selBr  = document.getElementById("sb-branch");
+  const cur_d  = selDep.value;
+  const cur_b  = selBr.value;
+
+  selDep.innerHTML  = `<option value="">Barcha bo'lim</option>` + deps.map(d => `<option ${d===cur_d?'selected':''}>${h(d)}</option>`).join('');
+  selBr.innerHTML   = `<option value="">Barcha filial</option>` + branches.map(b => `<option ${b===cur_b?'selected':''}>${h(b)}</option>`).join('');
+}
+
+// ══════════════ APPLY FILTERS ══════════════
+function applyFilters() {
+  const dep    = document.getElementById("sb-dep").value;
+  const branch = document.getElementById("sb-branch").value;
+  const status = document.getElementById("sb-status").value;
+  const emp    = document.getElementById("sb-emp").value;
+  const q      = document.getElementById("gsearch").value.trim().toLowerCase();
+
+  filtered = allData.filter(r => {
+    if (dep    && r.department    !== dep)    return false;
+    if (branch && r.branch        !== branch) return false;
+    if (status && r.status        !== status) return false;
+    if (emp    && r.employment_type !== emp)  return false;
+    if (q) {
+      const hay = [r.position_name, r.department, r.branch, r.offered_salary, r.mandatory_requirements, r.status]
+        .join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (curView === "pipeline") renderPipeline();
+  else renderTable();
+}
+
+function clearFilters() {
+  ["sb-dep","sb-branch","sb-status","sb-emp"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("gsearch").value = "";
+  applyFilters();
+}
+
+// ══════════════ STATS ══════════════
+function updateStats() {
+  document.getElementById("s-total").textContent = allData.length;
+  document.getElementById("s-wait").textContent  = allData.filter(r => r.status === "Kutish jarayonida").length;
+  document.getElementById("s-proc").textContent  = allData.filter(r => r.status === "Ko'rib chiqilmoqda").length;
+  document.getElementById("s-appr").textContent  = allData.filter(r => r.status === "Tasdiqlandi").length;
+  document.getElementById("s-rej").textContent   = allData.filter(r => r.status === "Rad etildi").length;
+  const nb = document.getElementById("nb-total");
+  nb.textContent = allData.length; nb.style.display = allData.length ? "block" : "none";
+}
+
+// ══════════════ VIEW TOGGLE ══════════════
+function setView(view, el) {
+  curView = view;
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  el.classList.add("active");
+
+  document.getElementById("view-pipeline").className = view === "pipeline" ? "page active" : "page";
+  document.getElementById("view-table").className    = view === "table"    ? "page active" : "page";
+
+  const titles = { pipeline: "Ish So'rovlari — Pipeline", table: "Ish So'rovlari — Jadval" };
+  document.getElementById("ptitle").textContent = titles[view];
+
+  applyFilters();
+}
+
+// ══════════════ PIPELINE ══════════════
+function renderPipeline() {
+  const board = document.getElementById("pipeline-board");
+  board.innerHTML = "";
+
+  JR_STAGES.forEach(stage => {
+    const cards = filtered.filter(r => (r.status || "Kutish jarayonida") === stage.id);
+    const col = document.createElement("div");
+    col.className = "jr-col";
+    col.dataset.stage = stage.id;
+
+    col.innerHTML = `<div class="jr-col-head">
+      <div class="jr-col-title"><span class="k-dot" style="background:${stage.color}"></span>${stage.label}</div>
+      <span class="jr-cnt">${cards.length}</span>
+    </div>`;
+
+    cards.forEach(req => {
+      const card = document.createElement("div");
+      card.className = "jr-card";
+      card.draggable = true;
+      card.dataset.id = req.id;
+      const dateStr = req.created_at ? new Date(req.created_at).toLocaleDateString("uz-UZ",{day:"2-digit",month:"short"}) : "—";
+      card.innerHTML = `
+        <div class="jr-card-title">${h(req.position_name)}</div>
+        <div class="jr-card-sub">
+          <span><i class="fa-solid fa-building" style="font-size:10px;color:#94a3b8;margin-right:3px"></i>${h(req.department||'—')}</span>
+          <span><i class="fa-solid fa-location-dot" style="font-size:10px;color:#94a3b8;margin-right:3px"></i>${h(req.branch||'—')}</span>
+        </div>
+        <div class="jr-card-foot">
+          <div>
+            <span class="jr-chip"><i class="fa-solid fa-users"></i> ${req.employee_count||1}</span>
+            <span class="jr-chip">${h(req.employment_type||'')}</span>
+          </div>
+          <span class="jr-card-time">${dateStr}</span>
+        </div>`;
+      card.addEventListener("click", () => openDetail(req.id));
+      card.addEventListener("dragstart", e => { dragId = req.id; card.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; });
+      card.addEventListener("dragend", () => { dragId = null; card.classList.remove("dragging"); });
+      col.appendChild(card);
+    });
+
+    const dz = document.createElement("div");
+    dz.className = "jr-drop";
+    dz.textContent = "Bu yerga tashlang";
+    dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
+    dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+    dz.addEventListener("drop", async e => {
+      e.preventDefault(); dz.classList.remove("over");
+      if (dragId) await moveStage(dragId, stage.id);
+    });
+    col.appendChild(dz);
+    board.appendChild(col);
+  });
+}
+
+async function moveStage(id, status) {
+  try {
+    await sbFetch(`${TABLE}?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status }), prefer: "return=minimal" });
+    const idx = allData.findIndex(r => r.id === id);
+    if (idx !== -1) allData[idx].status = status;
+    applyFilters(); updateStats();
+    toast("success", "Status yangilandi!", status);
+  } catch(e) { toast("error", "Xatolik", e.message); }
+}
+
+// ══════════════ TABLE ══════════════
+function renderTable() {
+  const tbody = document.getElementById("tbl-body");
+  const cnt   = document.getElementById("tbl-count");
+  cnt.textContent = `${filtered.length} ta natija`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>Ma'lumot topilmadi</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((r, i) => {
+    const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString("uz-UZ") : "—";
+    const stCls   = BADGE_MAP[r.status] || "s-waiting";
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td><div class="nm">${h(r.position_name)}</div></td>
+      <td><div class="ns">${h(r.department||'—')}</div></td>
+      <td><div class="ns">${h(r.branch||'—')}</div></td>
+      <td style="text-align:center">${r.employee_count||1}</td>
+      <td>${h(r.employment_type||'—')}</td>
+      <td style="color:var(--indigo);font-weight:600;font-size:12px">${h(r.offered_salary||'—')}</td>
+      <td><span class="badge ${stCls}">${h(r.status||'Kutish jarayonida')}</span></td>
+      <td style="color:var(--muted);font-size:12px">${dateStr}</td>
+      <td><div class="act">
+        <button class="ic-btn ic-v" onclick="openDetail('${r.id}')" title="Ko'rish"><i class="fa-solid fa-eye"></i></button>
+        <button class="ic-btn ic-e" onclick="openEdit('${r.id}')" title="Tahrirlash"><i class="fa-solid fa-pen"></i></button>
+        <button class="ic-btn ic-d" onclick="deleteReq('${r.id}')" title="O'chirish"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════ DETAIL MODAL ══════════════
+function openDetail(id) {
+  const req = allData.find(r => r.id === id);
+  if (!req) return;
+  editId = id;
+  document.getElementById("dm-title").textContent = `Ish So'rovi — ${req.position_name}`;
+  renderDetailView(req);
+  openM("dm");
+}
+
+function renderDetailView(req) {
+  const dateStr = req.created_at ? new Date(req.created_at).toLocaleString("uz-UZ") : "—";
+  const stCls   = BADGE_MAP[req.status] || "s-waiting";
+  document.getElementById("dm-body").innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="dsec">Tashkilot</div>
+        <div class="dr"><span class="dk">Bo'lim</span><span class="dv"><b>${h(req.department||'—')}</b></span></div>
+        <div class="dr"><span class="dk">Filial</span><span class="dv">${h(req.branch||'—')}</span></div>
+        <div class="dsec">Lavozim</div>
+        <div class="dr"><span class="dk">Nomi</span><span class="dv"><b>${h(req.position_name||'—')}</b></span></div>
+        <div class="dr"><span class="dk">Soni</span><span class="dv">${req.employee_count||1} kishi</span></div>
+        <div class="dr"><span class="dk">Jins</span><span class="dv">${h(req.gender_requirement||'—')}</span></div>
+        <div class="dr"><span class="dk">Bandlik</span><span class="dv">${h(req.employment_type||'—')}</span></div>
+        <div class="dr"><span class="dk">Ish vaqti</span><span class="dv">${h(req.work_hours||'—')}</span></div>
+        ${req.weekly_workload?`<div class="dr"><span class="dk">Haftalik</span><span class="dv">${h(req.weekly_workload)}</span></div>`:''}
+        ${req.target_classes?`<div class="dr"><span class="dk">Sinflar</span><span class="dv">${h(req.target_classes)}</span></div>`:''}
+      </div>
+      <div>
+        <div class="dsec">Sabab va Talablar</div>
+        <div class="dr"><span class="dk">Sababi</span><span class="dv">${h(req.reason_for_need||'—')}${req.reason_other_detail?' — '+h(req.reason_other_detail):''}</span></div>
+        <div class="dr"><span class="dk">Talablar</span><span class="dv" style="line-height:1.6">${h(req.mandatory_requirements||'—')}</span></div>
+        <div class="dr"><span class="dk">Maosh</span><span class="dv" style="color:var(--indigo);font-weight:600">${h(req.offered_salary||'—')}</span></div>
+        ${req.additional_notes?`<div class="dr"><span class="dk">Izoh</span><span class="dv">${h(req.additional_notes)}</span></div>`:''}
+        <div class="dsec">Status</div>
+        <div class="dr"><span class="dk">Joriy</span><span class="dv"><span class="badge ${stCls}">${h(req.status||'Kutish jarayonida')}</span></span></div>
+        <div class="dr"><span class="dk">Yaratildi</span><span class="dv">${dateStr}</span></div>
+        <div class="dsec">Status o'zgartirish</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          ${JR_STAGES.map(s=>`<button class="btn btn-ghost btn-sm ${req.status===s.id?'btn-primary':''}" 
+            style="${req.status===s.id?'background:'+s.color+';color:#fff;border-color:'+s.color:''}" 
+            onclick="quickStatus('${req.id}','${s.id}')">${s.label}</button>`).join('')}
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="openEdit('${req.id}');closeM('dm')"><i class="fa-solid fa-pen"></i> Tahrirlash</button>
+          <button class="ic-btn ic-d" onclick="deleteReq('${req.id}')" title="O'chirish"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function quickStatus(id, status) {
+  await moveStage(id, status);
+  const req = allData.find(r => r.id === id);
+  if (req) renderDetailView(req);
+}
+
+// ══════════════ EDIT MODAL (reuse new modal) ══════════════
+function openEdit(id) {
+  const req = allData.find(r => r.id === id);
+  if (!req) return;
+  editId = id;
+
+  // Populate new form with existing data
+  const setVal = (el, val) => { if (el) el.value = val || ""; };
+  setVal(document.getElementById("n-pos"),     req.position_name);
+  setVal(document.getElementById("n-cnt"),     req.employee_count || 1);
+  setVal(document.getElementById("n-gender"),  req.gender_requirement || "Farq qilmaydi");
+  setVal(document.getElementById("n-emp"),     req.employment_type || "To'liq stavka");
+  setVal(document.getElementById("n-hours"),   req.work_hours);
+  setVal(document.getElementById("n-weekly"),  req.weekly_workload);
+  setVal(document.getElementById("n-classes"), req.target_classes);
+  setVal(document.getElementById("n-reason"),  req.reason_for_need);
+  setVal(document.getElementById("n-reason-other"), req.reason_other_detail);
+  setVal(document.getElementById("n-reqs"),    req.mandatory_requirements);
+  setVal(document.getElementById("n-salary"),  req.offered_salary);
+  setVal(document.getElementById("n-notes"),   req.additional_notes);
+
+  // Department & Branch
+  const depSel = document.getElementById("n-dep");
+  depSel.value = req.department || "";
+  onDepChange('n');
+  setTimeout(() => {
+    document.getElementById("n-branch").value = req.branch || "";
+  }, 50);
+
+  toggleReasonOther('n');
+
+  document.querySelector("#nm .mhead h3").textContent = "Ish So'rovini Tahrirlash";
+  openM("nm");
+}
+
+// ══════════════ NEW MODAL ══════════════
+function openNewModal() {
+  editId = null;
+  document.querySelector("#nm .mhead h3").textContent = "Yangi Ish So'rovi";
+  ["n-pos","n-hours","n-weekly","n-classes","n-salary","n-notes","n-reason-other"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
+  document.getElementById("n-dep").value    = "";
+  document.getElementById("n-branch").innerHTML = `<option value="">— Avval bo'lim tanlang —</option>`;
+  document.getElementById("n-gender").value = "Farq qilmaydi";
+  document.getElementById("n-emp").value    = "To'liq stavka";
+  document.getElementById("n-reason").value = "";
+  document.getElementById("n-cnt").value    = 1;
+  document.getElementById("n-reason-other-wrap").style.display = "none";
+  openM("nm");
+}
+
+function onDepChange(p) {
+  const dep  = document.getElementById(`${p}-dep`).value;
+  const sel  = document.getElementById(`${p}-branch`);
+  const brs  = DEP_BRANCHES[dep] || [];
+  sel.innerHTML = `<option value="">— Tanlang —</option>` + brs.map(b => `<option>${h(b)}</option>`).join('');
+}
+
+function toggleReasonOther(p) {
+  const v  = document.getElementById(`${p}-reason`).value;
+  const el = document.getElementById(`${p}-reason-other-wrap`);
+  if (el) el.style.display = v === "Boshqa" ? "block" : "none";
+}
+
+async function saveNew() {
+  const dep    = document.getElementById("n-dep").value;
+  const branch = document.getElementById("n-branch").value;
+  const pos    = document.getElementById("n-pos").value.trim();
+  const reason = document.getElementById("n-reason").value;
+  const reqs   = document.getElementById("n-reqs").value.trim();
+  const salary = document.getElementById("n-salary").value.trim();
+  const hours  = document.getElementById("n-hours").value.trim();
+
+  if (!dep)    { alert("Bo'limni tanlang!"); return; }
+  if (!branch) { alert("Filialni tanlang!"); return; }
+  if (!pos)    { alert("Lavozim nomini kiriting!"); return; }
+  if (!reason) { alert("Sababni tanlang!"); return; }
+  if (!reqs)   { alert("Talablarni kiriting!"); return; }
+  if (!salary) { alert("Maoshni kiriting!"); return; }
+  if (!hours)  { alert("Ish vaqtini kiriting!"); return; }
+
+  const payload = {
+    department:            dep,
+    branch,
+    position_name:         pos,
+    employee_count:        parseInt(document.getElementById("n-cnt").value) || 1,
+    gender_requirement:    document.getElementById("n-gender").value,
+    employment_type:       document.getElementById("n-emp").value,
+    work_hours:            hours,
+    weekly_workload:       document.getElementById("n-weekly").value.trim(),
+    target_classes:        document.getElementById("n-classes").value.trim(),
+    reason_for_need:       reason,
+    reason_other_detail:   document.getElementById("n-reason-other")?.value.trim() || "",
+    mandatory_requirements: reqs,
+    offered_salary:        salary,
+    additional_notes:      document.getElementById("n-notes").value.trim(),
+  };
+
+  try {
+    if (editId) {
+      await sbFetch(`${TABLE}?id=eq.${editId}`, { method: "PATCH", body: JSON.stringify(payload), prefer: "return=minimal" });
+      toast("success", "Yangilandi!", `"${pos}" yangilandi.`);
+    } else {
+      payload.status = "Kutish jarayonida";
+      await sbFetch(TABLE, { method: "POST", body: JSON.stringify(payload), prefer: "return=minimal" });
+      toast("success", "Saqlandi!", `"${pos}" qo'shildi.`);
+    }
+    closeM("nm");
+    await loadData(false);
+  } catch(e) { toast("error", "Xatolik", e.message); }
+}
+
+async function deleteReq(id) {
+  const req = allData.find(r => r.id === id);
+  if (!confirm(`"${req?.position_name || id}" o'chirilsinmi?`)) return;
+  try {
+    await sbFetch(`${TABLE}?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" });
+    closeM("dm");
+    await loadData(false);
+    toast("success", "O'chirildi!", "So'rov o'chirildi.");
+  } catch(e) { toast("error", "Xatolik", e.message); }
+}
+
+// ══════════════ EXCEL EXPORT ══════════════
+function exportExcel() {
+  const data = filtered.length ? filtered : allData;
+  if (!data.length) { alert("Ma'lumot yo'q!"); return; }
+  const rows = data.map(r => ({
+    "ID":            r.id,
+    "Bo'lim":        r.department    || "",
+    "Filial":        r.branch        || "",
+    "Lavozim":       r.position_name || "",
+    "Soni":          r.employee_count || 1,
+    "Jins":          r.gender_requirement || "",
+    "Bandlik":       r.employment_type   || "",
+    "Ish vaqti":     r.work_hours        || "",
+    "Haftalik":      r.weekly_workload   || "",
+    "Sinflar":       r.target_classes    || "",
+    "Sababi":        r.reason_for_need   || "",
+    "Sabab izoh":    r.reason_other_detail || "",
+    "Talablar":      r.mandatory_requirements || "",
+    "Maosh":         r.offered_salary    || "",
+    "Izoh":          r.additional_notes  || "",
+    "Status":        r.status           || "",
+    "Yaratildi":     r.created_at ? new Date(r.created_at).toLocaleString("uz-UZ") : ""
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ish So'rovlari");
+  XLSX.writeFile(wb, "ish_sorovlari_" + new Date().toISOString().slice(0,10) + ".xlsx");
+}
+
+// ══════════════ MODAL HELPERS ══════════════
+function openM(id) { document.getElementById(id).classList.add("open"); }
+function closeM(id) { document.getElementById(id).classList.remove("open"); }
+
+// Close on overlay click
+document.querySelectorAll(".overlay").forEach(ov => {
+  ov.addEventListener("click", e => { if (e.target === ov) ov.classList.remove("open"); });
+});
+
+// ══════════════ TOAST ══════════════
+function toast(type, title, msg = "") {
+  const icons = { success: "fa-check", error: "fa-xmark", info: "fa-info", warn: "fa-exclamation" };
+  const wrap  = document.getElementById("toast-wrap");
+  const t     = document.createElement("div");
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<div class="toast-icon"><i class="fa-solid ${icons[type]||'fa-info'}"></i></div>
+    <div class="toast-body"><div class="toast-title">${title}</div>${msg?`<div class="toast-msg">${msg}</div>`:''}</div>
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
+  wrap.appendChild(t);
+  setTimeout(() => { t.classList.add("hide"); setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+// ══════════════ ESCAPE HTML ══════════════
+function h(s) {
+  if (s == null) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ══════════════ INIT ══════════════
+checkAuth();
+setInterval(() => { if (curUser) loadData(false); }, 60000);
+</script>
+</body>
+</html>
