@@ -122,15 +122,27 @@ bot_loop = None
 # ── Flask ──────────────────────────────────────────────────────────────
 flask_app = Flask(__name__, static_folder=".")
 flask_app.secret_key = SECRET_KEY
+HTTPS_ENV = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "") != ""
+
 flask_app.config.update(
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_SAMESITE="None" if HTTPS_ENV else "Lax",
+    SESSION_COOKIE_SECURE=HTTPS_ENV,
     SESSION_COOKIE_HTTPONLY=True,
     PERMANENT_SESSION_LIFETIME=timedelta(days=7),
 )
-CORS(flask_app, supports_credentials=True, origins="*", 
-     allow_headers=["Content-Type","Authorization"],
-     methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS"])
+
+# CORS: credentials=True bilan origins="*" ishlamaydi — aniq URL kerak
+_allowed_origins = [
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+]
+if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
+    _allowed_origins.append(f"https://{os.environ['RAILWAY_PUBLIC_DOMAIN']}")
+
+CORS(flask_app, supports_credentials=True,
+     origins=_allowed_origins,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 
 def login_required(f):
     @wraps(f)
